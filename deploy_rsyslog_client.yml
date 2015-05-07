@@ -1,0 +1,51 @@
+---
+- hosts: rsyslog_clients
+
+  remote_user: root
+
+  tasks:
+  - name: Remove old rsyslog package (CentOS 6 or higher)
+    yum: name={{ item }} state=absent
+    with_items:
+      - rsyslog
+      - rsyslog-gnutls
+    when: ansible_distribution == "CentOS" and
+          ansible_distribution_major_version >= "6"
+
+  - name: Install/Update rsyslog v7 packages (CentOS 6 or higher)
+    yum: name={{ item }} state=latest
+    with_items:
+      - rsyslog7
+      - rsyslog7-gnutls
+    when: ansible_distribution == "CentOS" and
+          ansible_distribution_major_version >= "6"
+
+  - name: Install rsyslog v5 package (CentOS 5)
+    yum: name={{ item }} state=present
+    with_items:
+      - rsyslog
+      - rsyslog-gnutls
+    when: ansible_distribution == "CentOS" and
+          ansible_distribution_major_version < "6"
+
+  - name: Create rsyslog spool dir
+    file: path={{ rsyslog_spooldir }} state=directory
+
+  - name: Configure rsyslog daemon
+    template: src=templates/etc_rsyslog.conf.j2 dest=/etc/rsyslog.conf
+              owner=root group=root mode=0644 backup=yes
+
+  - name: Install ca-certificates package for PKI
+    yum: name=ca-certificates state=latest
+
+  - name: Enable PKI bundle file
+    command: /usr/bin/update-ca-trust enable
+
+  - name: Copy local CA certificate to PKI
+    copy: src=files/selfsign.pem dest=/etc/pki/ca-trust/source/anchors/
+
+  - name: Update PKI bundle file
+    command: /usr/bin/update-ca-trust extract
+
+  - name: Restart rsyslog service
+    service: name=rsyslog pattern=rsyslog state=restarted enabled=yes

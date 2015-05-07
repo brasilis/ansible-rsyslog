@@ -1,0 +1,6 @@
+---
+
+rsyslog_spooldir: /var/spool/rsyslog
+
+log_server_hostname: logger.my.localdomain
+log_server_port: 6515

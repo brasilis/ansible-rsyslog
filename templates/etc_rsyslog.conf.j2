@@ -1,0 +1,38 @@
+# rsyslog config file
+
+$ModLoad imuxsock.so
+$ModLoad imklog.so
+
+$ActionFileDefaultTemplate RSYSLOG_SyslogProtocol23Format
+
+$DefaultNetstreamDriver gtls
+
+$DefaultNetstreamDriverCAFile /etc/pki/rsyslog/selfsign.pem
+$DefaultNetstreamDriverCertFile /etc/pki/rsyslog/{{ ansible_hostname }}_cert.pem
+$DefaultNetstreamDriverKeyFile /etc/pki/rsyslog/{{ ansible_hostname }}_privkey.key
+
+$ActionSendStreamDriverMode 1
+$ActionSendStreamDriverAuthMode x509/name
+
+$WorkDirectory {{ rsyslog_spooldir }}
+$ActionQueueType Disk
+$ActionQueueFileName fila_{{ ansible_hostname }}
+$ActionQueueMaxDiskSpace 500m
+$ActionQueueSaveOnShutdown on
+$ActionQueueTimeoutEnqueue 1000
+$ActionResumeRetryCount -1
+#$ActionQueueType LinkedList
+
+# local logging
+kern.*                                                 /var/log/kernel.log
+*.info;mail.none;authpriv.none;cron.none                /var/log/messages
+authpriv.*                                              /var/log/secure
+mail.*                                                  -/var/log/maillog
+cron.*                                                  /var/log/cron
+*.emerg                                                 *
+uucp,news.crit                                          /var/log/spooler
+local7.*                                                /var/log/boot.log
+#:programname, isequal, "snoopy"				                /var/log/snoopy.log
+
+# foward all logs to remote server
+*.* @@(o){{ log_server_hostname }}:{{ log_server_port }}
