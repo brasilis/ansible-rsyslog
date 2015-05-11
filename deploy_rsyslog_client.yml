@@ -1,5 +1,5 @@
 ---
-- hosts: rsyslog_clients
+- hosts: my_vm
 
   remote_user: root
 
@@ -9,24 +9,32 @@
     with_items:
       - rsyslog
       - rsyslog-gnutls
-    when: ansible_distribution == "CentOS" and
-          ansible_distribution_major_version >= "6"
+    when: (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
+          and ansible_distribution_major_version >= "6"
 
   - name: Install/Update rsyslog v7 packages (CentOS 6 or higher)
     yum: name={{ item }} state=latest
     with_items:
       - rsyslog7
       - rsyslog7-gnutls
-    when: ansible_distribution == "CentOS" and
-          ansible_distribution_major_version >= "6"
+    when: (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
+          and ansible_distribution_major_version >= "6"
 
   - name: Install rsyslog v5 package (CentOS 5)
     yum: name={{ item }} state=present
     with_items:
       - rsyslog
       - rsyslog-gnutls
-    when: ansible_distribution == "CentOS" and
-          ansible_distribution_major_version < "6"
+    when: (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
+          and ansible_distribution_major_version < "6"
+
+  - name: Installs certificates
+    unarchive: copy=no src=/tmp/certs_{{ ansible_hostname }}.tar
+               dest=/etc/pki/rsyslog/
+    ignore_errors: yes
+
+  - name: Remove certificate tar file
+    file: path=/tmp/certs_{{ ansible_hostname }}.tar state=absent
 
   - name: Create rsyslog spool dir
     file: path={{ rsyslog_spooldir }} state=directory
@@ -37,15 +45,28 @@
 
   - name: Install ca-certificates package for PKI
     yum: name=ca-certificates state=latest
+    when: (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
+          and ansible_distribution_major_version >= "6"
 
   - name: Enable PKI bundle file
     command: /usr/bin/update-ca-trust enable
+    when: (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
+          and ansible_distribution_major_version >= "6"
 
   - name: Copy local CA certificate to PKI
-    copy: src=files/selfsign.pem dest=/etc/pki/ca-trust/source/anchors/
+    synchronize: src=/etc/pki/rsyslog/x-oc-ca_certautoassinado.pem
+                 dest=/etc/pki/ca-trust/source/anchors/
+    when: (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
+          and ansible_distribution_major_version >= "6"
 
   - name: Update PKI bundle file
     command: /usr/bin/update-ca-trust extract
+    when: (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
+          and ansible_distribution_major_version >= "6"
+
+  - name: Stop sysklogd service
+    service: name=syslog pattern=syslog state=stopped enabled=no
+    ignore_errors: yes
 
   - name: Restart rsyslog service
     service: name=rsyslog pattern=rsyslog state=restarted enabled=yes
