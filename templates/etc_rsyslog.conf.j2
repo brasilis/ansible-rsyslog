@@ -7,7 +7,7 @@ $ActionFileDefaultTemplate RSYSLOG_SyslogProtocol23Format
 
 $DefaultNetstreamDriver gtls
 
-$DefaultNetstreamDriverCAFile /etc/pki/rsyslog/selfsign.pem
+$DefaultNetstreamDriverCAFile /etc/pki/rsyslog/{{ selfsign_cert }}
 $DefaultNetstreamDriverCertFile /etc/pki/rsyslog/{{ ansible_hostname }}_cert.pem
 $DefaultNetstreamDriverKeyFile /etc/pki/rsyslog/{{ ansible_hostname }}_privkey.key
 

@@ -54,7 +54,7 @@
           and ansible_distribution_major_version >= "6"
 
   - name: Copy local CA certificate to PKI
-    synchronize: src=/etc/pki/rsyslog/x-oc-ca_certautoassinado.pem
+    synchronize: src=/etc/pki/rsyslog/{{ selfsign_cert }}
                  dest=/etc/pki/ca-trust/source/anchors/
     when: (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
           and ansible_distribution_major_version >= "6"
